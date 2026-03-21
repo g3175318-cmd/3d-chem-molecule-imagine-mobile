@@ -1,0 +1,1109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Molecule Studio</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500;600&family=IBM+Plex+Sans:wght@400;500&display=swap" rel="stylesheet"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#07090f;--bg2:#0b0e17;--bg3:#0f1320;
+  --b1:#18202e;--b2:#1e2a3a;
+  --amber:#e8a838;--am2:#7a5010;--amg:#e8a83818;
+  --text:#ccd4e0;--dim:#4a5870;--mute:#222a38;
+  --red:#d94040;--green:#3a9a6a;
+  --canvas-bg:#07090f;
+  --sheet-h:72vh;
+}
+:root.light{
+  --bg:#f0f2f5;--bg2:#ffffff;--bg3:#e8eaee;
+  --b1:#d0d4dc;--b2:#b8bdc8;
+  --amber:#c07a10;--am2:#c07a10;--amg:#c07a1014;
+  --text:#1a2030;--dim:#6a7488;--mute:#a0a8b8;
+  --red:#c03030;--green:#207850;
+  --canvas-bg:#eef0f4;
+}
+html,body{width:100%;height:100%;overflow:hidden;background:var(--bg)}
+*{transition:background-color .25s,border-color .25s,color .25s,box-shadow .25s}
+body{display:flex;flex-direction:column;font-family:'IBM Plex Mono',monospace;color:var(--text)}
+
+/* ── TOPBAR ── */
+#bar{
+  height:50px;flex-shrink:0;display:flex;align-items:center;justify-content:space-between;
+  padding:0 16px;background:var(--bg2);border-bottom:1px solid var(--b1);z-index:20
+}
+.logo{display:flex;align-items:center;gap:10px}
+.logo-icon{width:26px;height:26px;position:relative;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.logo-ring{position:absolute;inset:0;border-radius:50%;border:1px solid #e8a83838;transform:rotateX(58deg)}
+.logo-core{width:11px;height:11px;border-radius:50%;background:radial-gradient(circle at 35% 35%,#f0c060,#a06010);box-shadow:0 0 10px #e8a83850}
+.logo-name{font-size:12px;font-weight:600;letter-spacing:.14em;color:var(--amber);line-height:1}
+.logo-sub{font-size:8px;color:var(--dim);letter-spacing:.09em;margin-top:2px}
+.logo-credit{font-size:7px;color:var(--mute);letter-spacing:.07em;margin-top:2px;font-style:italic}
+.bar-right{display:flex;align-items:center;gap:8px}
+#theme-btn{
+  background:var(--bg3);border:1px solid var(--b2);border-radius:20px;
+  color:var(--dim);font-family:'IBM Plex Mono',monospace;font-size:11px;
+  padding:5px 11px;cursor:pointer;transition:all .2s;letter-spacing:.06em;
+  display:flex;align-items:center;gap:5px;white-space:nowrap;flex-shrink:0
+}
+#theme-btn:hover{border-color:var(--amber);color:var(--amber)}
+#hdr-info{text-align:right;opacity:0;transition:opacity .35s;min-width:0}
+#hdr-info.on{opacity:1}
+#hdr-formula{font-size:17px;font-weight:600;color:var(--text);letter-spacing:.04em;line-height:1}
+#hdr-name{font-size:8px;color:var(--dim);letter-spacing:.1em;margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+/* ── LAYOUT ── */
+#layout{display:flex;flex:1;overflow:hidden;position:relative}
+
+/* ── DESKTOP SIDEBAR ── */
+#side{
+  width:248px;flex-shrink:0;background:var(--bg2);border-right:1px solid var(--b1);
+  display:flex;flex-direction:column;overflow-y:auto;overflow-x:hidden;
+  scrollbar-width:thin;scrollbar-color:var(--b2) transparent
+}
+#side::-webkit-scrollbar{width:3px}
+#side::-webkit-scrollbar-thumb{background:var(--b2)}
+
+.sec{padding:16px 16px 0}
+.lbl{
+  font-size:9px;font-weight:600;letter-spacing:.15em;color:var(--mute);
+  margin-bottom:7px;display:flex;align-items:center;gap:6px
+}
+.lbl::after{content:'';flex:1;height:1px;background:var(--b1)}
+.hr{height:1px;background:var(--b1);margin:16px 16px 0}
+.inp{
+  width:100%;background:var(--bg3);border:1px solid var(--b2);border-radius:6px;
+  color:var(--text);font-family:'IBM Plex Mono',monospace;font-size:13px;
+  padding:10px 12px;outline:none;
+}
+.inp:focus{border-color:var(--am2);box-shadow:0 0 0 2px var(--amg)}
+.inp::placeholder{color:var(--mute)}
+.kw{position:relative}
+.kw .inp{padding-right:36px}
+#keytog{
+  position:absolute;right:10px;top:50%;transform:translateY(-50%);
+  background:none;border:none;color:var(--dim);cursor:pointer;font-size:14px;padding:2px
+}
+#keytog:hover{color:var(--amber)}
+#mrow{display:flex;gap:6px}
+#mrow .inp{flex:1;min-width:0}
+#gobtn{
+  flex-shrink:0;width:40px;height:40px;
+  background:var(--bg3);border:1px solid var(--b2);border-radius:6px;
+  color:var(--amber);font-size:17px;cursor:pointer;
+  display:flex;align-items:center;justify-content:center
+}
+#gobtn:hover:not([disabled]){background:var(--amg);border-color:var(--am2)}
+#gobtn[disabled]{opacity:.3;cursor:not-allowed}
+.spin{width:13px;height:13px;border:2px solid var(--b2);border-top-color:var(--amber);border-radius:50%;animation:spin .7s linear infinite;display:none}
+#gobtn.ld .arr{display:none}
+#gobtn.ld .spin{display:block}
+.chips{display:flex;flex-wrap:wrap;gap:5px}
+.chip{
+  padding:5px 9px;background:var(--bg3);border:1px solid var(--b1);border-radius:20px;
+  font-size:10px;color:var(--dim);cursor:pointer;font-family:'IBM Plex Mono',monospace
+}
+.chip:hover,.chip:active{border-color:var(--am2);color:var(--amber);background:var(--amg)}
+#src-badge{
+  margin:10px 16px 0;padding:6px 10px;border-radius:4px;
+  background:var(--bg3);border:1px solid var(--b1);
+  font-size:9px;letter-spacing:.1em;color:var(--dim);
+  align-items:center;gap:7px;display:none
+}
+#src-dot{width:7px;height:7px;border-radius:50%;background:var(--green);flex-shrink:0}
+#leg-sec,#stat-sec{display:none}
+#leg-list{display:flex;flex-direction:column;gap:6px}
+.lrow{display:flex;align-items:center;gap:9px;animation:fup .3s ease both}
+.ldot{width:11px;height:11px;border-radius:50%;flex-shrink:0}
+.lsym{font-size:13px;font-weight:600;color:var(--text);width:22px}
+.lnm{font-size:10px;color:var(--dim);font-family:'IBM Plex Sans',sans-serif}
+.srow{display:flex;justify-content:space-between;align-items:baseline;padding:5px 0;border-bottom:1px solid var(--b1)}
+.srow:last-child{border-bottom:none}
+.sk{font-size:9px;color:var(--mute);letter-spacing:.12em}
+.sv{font-size:16px;font-weight:600;color:var(--amber)}
+#ctrls{margin-top:auto;padding:12px 16px 16px;border-top:1px solid var(--b1);display:flex;gap:5px}
+.cb{
+  flex:1;padding:8px 3px;background:var(--bg3);border:1px solid var(--b1);border-radius:4px;
+  color:var(--dim);font-family:'IBM Plex Mono',monospace;font-size:9px;letter-spacing:.05em;cursor:pointer
+}
+.cb:hover{border-color:var(--b2);color:var(--text)}
+.cb.on{border-color:var(--am2);color:var(--amber);background:var(--amg)}
+
+/* ── CANVAS ── */
+#cvs{flex:1;position:relative;overflow:hidden;cursor:grab}
+#cvs.drag{cursor:grabbing}
+#cvs canvas{display:block;width:100%!important;height:100%!important}
+
+/* empty state */
+#empty{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;pointer-events:none;gap:12px;transition:opacity .5s}
+#empty.off{opacity:0}
+.eorb{width:84px;height:84px;position:relative;display:flex;align-items:center;justify-content:center;margin-bottom:4px}
+.er{position:absolute;inset:0;border-radius:50%;border:1px solid var(--b2);transform:rotateX(64deg);animation:os 6s linear infinite}
+.er2{position:absolute;inset:8px;border-radius:50%;border:1px solid var(--b1);transform:rotateX(64deg) rotateY(45deg);animation:os 9s linear infinite reverse}
+.ec{width:24px;height:24px;border-radius:50%;background:radial-gradient(circle at 38% 35%,#1c2640,#080d18);border:1px solid var(--b2)}
+.et1{font-size:11px;color:var(--mute);letter-spacing:.16em;text-align:center;padding:0 20px}
+.et2{font-size:9px;color:var(--b2);letter-spacing:.1em;text-align:center}
+
+/* loading */
+#ldov{
+  position:absolute;inset:0;background:rgba(0,0,0,.65);backdrop-filter:blur(4px);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:16px;opacity:0;pointer-events:none;transition:opacity .25s;z-index:30
+}
+#ldov.on{opacity:1;pointer-events:all}
+.bspin{width:46px;height:46px;border:2px solid var(--b2);border-top-color:var(--amber);border-radius:50%;animation:spin .9s linear infinite}
+#ldtxt{font-size:10px;color:var(--dim);letter-spacing:.18em;animation:pulse 1.6s ease infinite}
+#ldsteps{display:flex;flex-direction:column;gap:5px;margin-top:4px;min-width:200px}
+.ldstep{display:flex;align-items:center;gap:8px;font-size:9px;color:var(--mute);letter-spacing:.1em}
+.ldstep.done{color:var(--green)}
+.ldstep.active{color:var(--text)}
+.ldstep-dot{width:6px;height:6px;border-radius:50%;background:var(--mute);flex-shrink:0}
+.ldstep.done .ldstep-dot{background:var(--green)}
+.ldstep.active .ldstep-dot{background:var(--amber);box-shadow:0 0 6px var(--amber)}
+
+/* toast */
+#toast{
+  position:absolute;bottom:20px;left:50%;transform:translateX(-50%) translateY(8px);
+  background:var(--bg2);border:1px solid var(--red);border-radius:6px;
+  padding:10px 18px;font-size:11px;color:var(--red);letter-spacing:.05em;
+  white-space:nowrap;max-width:88%;overflow:hidden;text-overflow:ellipsis;
+  opacity:0;pointer-events:none;transition:opacity .25s,transform .25s;z-index:100
+}
+#toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
+
+/* desktop hints */
+#hints{
+  position:absolute;bottom:18px;right:18px;display:flex;flex-direction:column;gap:3px;
+  pointer-events:none;opacity:0;transition:opacity .5s
+}
+#hints.on{opacity:1}
+.hr2{display:flex;gap:7px;justify-content:flex-end}
+.hk{font-size:8px;color:var(--b2);letter-spacing:.1em}
+.hv{font-size:8px;color:var(--mute);letter-spacing:.1em}
+
+/* ── MOBILE BOTTOM BAR ── */
+#mob-bar{
+  display:none;
+  position:fixed;bottom:0;left:0;right:0;z-index:40;
+  background:var(--bg2);border-top:1px solid var(--b1);
+  padding:10px 12px 10px;
+  padding-bottom:calc(10px + env(safe-area-inset-bottom));
+  gap:8px;align-items:center;
+}
+#mob-search{display:flex;gap:8px;flex:1}
+#mob-search .inp{flex:1;font-size:14px;padding:11px 14px;border-radius:8px}
+#mob-gobtn{
+  flex-shrink:0;width:46px;height:46px;
+  background:var(--amber);border:none;border-radius:8px;
+  color:#000;font-size:20px;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;font-weight:700
+}
+#mob-gobtn[disabled]{opacity:.4;cursor:not-allowed}
+#mob-gobtn.ld .arr{display:none}
+#mob-gobtn.ld .spin{display:block}
+#mob-gobtn .spin{border-top-color:#000}
+#mob-panel-btn{
+  flex-shrink:0;width:46px;height:46px;
+  background:var(--bg3);border:1px solid var(--b2);border-radius:8px;
+  color:var(--dim);font-size:18px;cursor:pointer;
+  display:flex;align-items:center;justify-content:center
+}
+#mob-panel-btn.on{background:var(--amg);border-color:var(--am2);color:var(--amber)}
+
+/* ── MOBILE BOTTOM SHEET ── */
+#mob-sheet{
+  display:none;
+  position:fixed;bottom:0;left:0;right:0;z-index:35;
+  background:var(--bg2);border-top:1px solid var(--b1);
+  border-radius:16px 16px 0 0;
+  height:var(--sheet-h);
+  transform:translateY(100%);
+  transition:transform .35s cubic-bezier(.32,1.1,.5,1);
+  flex-direction:column;
+  overflow:hidden;
+}
+#mob-sheet.open{transform:translateY(0)}
+#sheet-handle{
+  flex-shrink:0;display:flex;justify-content:center;padding:10px 0 6px;cursor:pointer
+}
+#sheet-handle-bar{width:36px;height:4px;background:var(--b2);border-radius:4px}
+#sheet-scroll{flex:1;overflow-y:auto;overflow-x:hidden;padding-bottom:80px;scrollbar-width:none}
+#sheet-scroll::-webkit-scrollbar{display:none}
+/* mob controls row */
+#mob-ctrls{
+  display:none;
+  position:fixed;top:58px;right:10px;z-index:25;
+  flex-direction:column;gap:5px;
+}
+.mcb{
+  padding:7px 10px;background:var(--bg2);border:1px solid var(--b1);border-radius:6px;
+  color:var(--dim);font-family:'IBM Plex Mono',monospace;font-size:9px;letter-spacing:.05em;
+  cursor:pointer;white-space:nowrap;box-shadow:0 2px 8px rgba(0,0,0,.3)
+}
+.mcb.on{border-color:var(--am2);color:var(--amber);background:var(--amg)}
+
+/* mob formula overlay */
+#mob-formula{
+  display:none;
+  position:absolute;top:8px;left:50%;transform:translateX(-50%);
+  background:var(--bg2);border:1px solid var(--b1);border-radius:20px;
+  padding:4px 14px;text-align:center;pointer-events:none;
+  opacity:0;transition:opacity .3s;z-index:20;white-space:nowrap
+}
+#mob-formula.on{opacity:1}
+#mob-formula-txt{font-size:14px;font-weight:600;color:var(--text);letter-spacing:.04em}
+#mob-formula-nm{font-size:8px;color:var(--dim);letter-spacing:.1em;margin-top:1px}
+
+/* ── SHEET BOTTOM PADDING (behind mob bar) ── */
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes pulse{0%,100%{opacity:.3}50%{opacity:1}}
+@keyframes os{to{transform:rotateX(64deg) rotateZ(360deg)}}
+@keyframes fup{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
+
+/* ── RESPONSIVE BREAKPOINT ── */
+@media(max-width:640px){
+  #side{display:none}
+  #mob-bar{display:flex}
+  #mob-sheet{display:flex}
+  #mob-ctrls{display:flex}
+  #mob-formula{display:block}
+  #hdr-info{display:none}
+  .logo-credit{display:none}
+  #theme-btn span:last-child{display:none}  /* hide text label, keep icon */
+  #theme-btn{padding:5px 9px}
+  #bar{padding:0 10px;gap:8px}
+  #cvs{margin-bottom:68px}
+  #cvs{margin-bottom:calc(68px + env(safe-area-inset-bottom))}
+  #hints{display:none}
+  #toast{bottom:80px}
+}
+@media(min-width:641px){
+  #mob-bar,#mob-sheet,#mob-ctrls,#mob-formula{display:none!important}
+}
+</style>
+</head>
+<body>
+
+<!-- TOP BAR -->
+<div id="bar">
+  <div class="logo">
+    <div class="logo-icon">
+      <div class="logo-ring"></div>
+      <div class="logo-core"></div>
+    </div>
+    <div>
+      <div class="logo-name">MOLECULE STUDIO</div>
+      <div class="logo-sub">3D STRUCTURE VISUALIZER</div>
+      <div class="logo-credit">Made By Amlan Dey</div>
+    </div>
+  </div>
+  <div class="bar-right">
+    <div id="hdr-info">
+      <div id="hdr-formula"></div>
+      <div id="hdr-name"></div>
+    </div>
+    <button id="theme-btn"><span id="theme-icon">☀</span><span id="theme-lbl">LIGHT</span></button>
+  </div>
+</div>
+
+<!-- DESKTOP LAYOUT -->
+<div id="layout">
+  <div id="side">
+    <div class="sec" style="padding-top:18px">
+      <div class="lbl">GEMINI API KEY <span style="color:var(--b2);font-weight:400">(optional — 99% don't need this)</span></div>
+      <div class="kw">
+        <input class="inp" type="password" id="apikey" placeholder="AIzaSy…" autocomplete="off" spellcheck="false"/>
+        <button id="keytog">◉</button>
+      </div>
+    </div>
+    <div class="hr"></div>
+    <div class="sec" style="padding-top:18px">
+      <div class="lbl">MOLECULE</div>
+      <div id="mrow">
+        <input class="inp" type="text" id="minp" placeholder="e.g. Caffeine" autocomplete="off" spellcheck="false"/>
+        <button id="gobtn"><span class="arr">→</span><span class="spin"></span></button>
+      </div>
+    </div>
+    <div class="sec" style="padding-top:14px">
+      <div class="lbl">EXAMPLES</div>
+      <div class="chips" id="chips"></div>
+    </div>
+    <div id="src-badge" style="display:none">
+      <div id="src-dot"></div>
+      <span id="src-txt">—</span>
+    </div>
+    <div class="hr" id="lhr" style="display:none"></div>
+    <div class="sec" id="leg-sec" style="padding-top:16px;padding-bottom:4px">
+      <div class="lbl">ELEMENTS</div>
+      <div id="leg-list"></div>
+    </div>
+    <div class="hr" id="shr" style="display:none"></div>
+    <div class="sec" id="stat-sec" style="padding-top:16px;padding-bottom:4px">
+      <div class="lbl">STRUCTURE</div>
+      <div class="srow"><span class="sk">ATOMS</span><span class="sv" id="s-at">—</span></div>
+      <div class="srow"><span class="sk">BONDS</span><span class="sv" id="s-bo">—</span></div>
+      <div class="srow"><span class="sk">FORMULA</span><span class="sv" id="s-fo" style="font-size:12px;letter-spacing:.02em">—</span></div>
+    </div>
+    <div style="flex:1"></div>
+    <div id="ctrls">
+      <button class="cb on" id="brot">⟳ AUTO</button>
+      <button class="cb"    id="brst">⊕ RESET</button>
+      <button class="cb"    id="bwir">◈ WIRE</button>
+    </div>
+  </div>
+
+  <!-- CANVAS -->
+  <div id="cvs">
+    <!-- Mobile: floating formula pill -->
+    <div id="mob-formula">
+      <div id="mob-formula-txt"></div>
+      <div id="mob-formula-nm"></div>
+    </div>
+    <div id="empty">
+      <div class="eorb"><div class="er"></div><div class="er2"></div><div class="ec"></div></div>
+      <div class="et1">ENTER A MOLECULE TO BEGIN</div>
+      <div class="et2">PUBCHEM DATABASE · GEMINI AI · THREE.JS</div>
+    </div>
+    <div id="ldov">
+      <div class="bspin"></div>
+      <div id="ldtxt">LOADING</div>
+      <div id="ldsteps">
+        <div class="ldstep" id="st0"><div class="ldstep-dot"></div><span>RESOLVING NAME → CID</span></div>
+        <div class="ldstep" id="st1"><div class="ldstep-dot"></div><span>FETCHING 3D CONFORMER</span></div>
+        <div class="ldstep" id="st2"><div class="ldstep-dot"></div><span>PARSING ATOMS &amp; BONDS</span></div>
+        <div class="ldstep" id="st3"><div class="ldstep-dot"></div><span>BUILDING 3D SCENE</span></div>
+      </div>
+    </div>
+    <div id="toast"></div>
+    <div id="hints">
+      <div class="hr2"><span class="hk">DRAG</span><span class="hv">ROTATE</span></div>
+      <div class="hr2"><span class="hk">RIGHT DRAG</span><span class="hv">PAN</span></div>
+      <div class="hr2"><span class="hk">SCROLL</span><span class="hv">ZOOM</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- MOBILE CONTROLS (floating top-right) -->
+<div id="mob-ctrls">
+  <button class="mcb on" id="mbrot">⟳ AUTO</button>
+  <button class="mcb"    id="mbrst">⊕ RESET</button>
+  <button class="mcb"    id="mbwir">◈ WIRE</button>
+</div>
+
+<!-- MOBILE BOTTOM BAR -->
+<div id="mob-bar">
+  <div id="mob-search">
+    <input class="inp" type="text" id="mob-minp" placeholder="Search molecule…" autocomplete="off" spellcheck="false"/>
+    <button id="mob-gobtn"><span class="arr">→</span><span class="spin"></span></button>
+  </div>
+  <button id="mob-panel-btn" title="Info panel">≡</button>
+</div>
+
+<!-- MOBILE BOTTOM SHEET -->
+<div id="mob-sheet">
+  <div id="sheet-handle" id="sheet-drag-handle">
+    <div id="sheet-handle-bar"></div>
+  </div>
+  <div id="sheet-scroll">
+    <div class="sec" style="padding-top:10px">
+      <div class="lbl">GEMINI API KEY <span style="color:var(--b2);font-weight:400">(optional — 99% don't need this)</span></div>
+      <div class="kw">
+        <input class="inp" type="password" id="mob-apikey" placeholder="AIzaSy…" autocomplete="off" spellcheck="false"/>
+        <button id="mob-keytog">◉</button>
+      </div>
+    </div>
+    <div class="hr"></div>
+    <div class="sec" style="padding-top:14px">
+      <div class="lbl">EXAMPLES</div>
+      <div class="chips" id="mob-chips"></div>
+    </div>
+    <div id="mob-src-badge" style="display:none;margin:12px 16px 0;padding:7px 12px;border-radius:6px;background:var(--bg3);border:1px solid var(--b1);font-size:9px;letter-spacing:.1em;color:var(--dim);align-items:center;gap:7px">
+      <div id="mob-src-dot" style="width:7px;height:7px;border-radius:50%;background:var(--green);flex-shrink:0"></div>
+      <span id="mob-src-txt">—</span>
+    </div>
+    <div class="hr" id="mob-lhr" style="display:none"></div>
+    <div class="sec" id="mob-leg-sec" style="padding-top:14px;padding-bottom:4px;display:none">
+      <div class="lbl">ELEMENTS</div>
+      <div id="mob-leg-list" style="display:flex;flex-direction:column;gap:6px"></div>
+    </div>
+    <div class="hr" id="mob-shr" style="display:none"></div>
+    <div class="sec" id="mob-stat-sec" style="padding-top:14px;padding-bottom:20px;display:none">
+      <div class="lbl">STRUCTURE</div>
+      <div class="srow"><span class="sk">ATOMS</span><span class="sv" id="mob-s-at">—</span></div>
+      <div class="srow"><span class="sk">BONDS</span><span class="sv" id="mob-s-bo">—</span></div>
+      <div class="srow"><span class="sk">FORMULA</span><span class="sv" id="mob-s-fo" style="font-size:12px;letter-spacing:.02em">—</span></div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ─────────────────────────────────────────────────
+//  ELEMENT TABLE (CPK colors + covalent radii)
+// ─────────────────────────────────────────────────
+var EL = {
+  H: {h:'#d8d8d8',c:0xd8d8d8,r:.28,n:'Hydrogen'},
+  He:{h:'#ffc0cb',c:0xffc0cb,r:.28,n:'Helium'},
+  Li:{h:'#cc44cc',c:0xcc44cc,r:.56,n:'Lithium'},
+  Be:{h:'#aad500',c:0xaad500,r:.46,n:'Beryllium'},
+  B: {h:'#ff9933',c:0xff9933,r:.40,n:'Boron'},
+  C: {h:'#404040',c:0x505050,r:.40,n:'Carbon'},
+  N: {h:'#2255ee',c:0x2255ee,r:.38,n:'Nitrogen'},
+  O: {h:'#ee2222',c:0xee2222,r:.36,n:'Oxygen'},
+  F: {h:'#44cc44',c:0x44cc44,r:.32,n:'Fluorine'},
+  Ne:{h:'#80ffff',c:0x80ffff,r:.28,n:'Neon'},
+  Na:{h:'#aa66ee',c:0xaa66ee,r:.70,n:'Sodium'},
+  Mg:{h:'#33dd00',c:0x33dd00,r:.64,n:'Magnesium'},
+  Al:{h:'#bfa6a6',c:0xbfa6a6,r:.58,n:'Aluminum'},
+  Si:{h:'#d4a050',c:0xd4a050,r:.54,n:'Silicon'},
+  P: {h:'#ff8800',c:0xff8800,r:.50,n:'Phosphorus'},
+  S: {h:'#cccc00',c:0xcccc00,r:.48,n:'Sulfur'},
+  Cl:{h:'#1fc01f',c:0x1fc01f,r:.46,n:'Chlorine'},
+  Ar:{h:'#80d1e3',c:0x80d1e3,r:.44,n:'Argon'},
+  K: {h:'#7733cc',c:0x7733cc,r:.80,n:'Potassium'},
+  Ca:{h:'#22ee00',c:0x22ee00,r:.76,n:'Calcium'},
+  Fe:{h:'#cc6622',c:0xcc6622,r:.60,n:'Iron'},
+  Co:{h:'#0000c8',c:0x0000c8,r:.58,n:'Cobalt'},
+  Ni:{h:'#28a528',c:0x28a528,r:.56,n:'Nickel'},
+  Cu:{h:'#cc8822',c:0xcc8822,r:.62,n:'Copper'},
+  Zn:{h:'#5577aa',c:0x5577aa,r:.58,n:'Zinc'},
+  Se:{h:'#ffa100',c:0xffa100,r:.48,n:'Selenium'},
+  Br:{h:'#991100',c:0x991100,r:.56,n:'Bromine'},
+  I: {h:'#880077',c:0x880077,r:.66,n:'Iodine'},
+  Ba:{h:'#00c900',c:0x00c900,r:.96,n:'Barium'},
+  Au:{h:'#ffd123',c:0xffd123,r:.66,n:'Gold'},
+  Hg:{h:'#b8b8d0',c:0xb8b8d0,r:.74,n:'Mercury'},
+  Pb:{h:'#575961',c:0x575961,r:.90,n:'Lead'},
+};
+var DEF = {h:'#778899',c:0x778899,r:.50,n:'Unknown'};
+
+// Atomic number → symbol (PubChem uses integers)
+var AN2SYM = {
+  1:'H',2:'He',3:'Li',4:'Be',5:'B',6:'C',7:'N',8:'O',9:'F',10:'Ne',
+  11:'Na',12:'Mg',13:'Al',14:'Si',15:'P',16:'S',17:'Cl',18:'Ar',19:'K',20:'Ca',
+  21:'Sc',22:'Ti',23:'V',24:'Cr',25:'Mn',26:'Fe',27:'Co',28:'Ni',29:'Cu',30:'Zn',
+  31:'Ga',32:'Ge',33:'As',34:'Se',35:'Br',36:'Kr',37:'Rb',38:'Sr',39:'Y',40:'Zr',
+  47:'Ag',48:'Cd',50:'Sn',51:'Sb',52:'Te',53:'I',54:'Xe',55:'Cs',56:'Ba',
+  79:'Au',80:'Hg',82:'Pb',83:'Bi'
+};
+
+// PubChem bond order values (4=aromatic, 5=any → treat as 1.5, render as 2)
+function normBondOrder(o){ return (o===4||o===5) ? 2 : (o>=1&&o<=3) ? o : 1; }
+
+var EXAMPLES = ['Water','Ethanol','Caffeine','Benzene','Aspirin','Glucose',
+                'Methane','Ammonia','Ibuprofen','Dopamine','Cholesterol','Penicillin G'];
+
+// ─────────────────────────────────────────────────
+//  THREE.JS INIT
+// ─────────────────────────────────────────────────
+var wrap     = document.getElementById('cvs');
+var renderer = new THREE.WebGLRenderer({antialias:true,alpha:false});
+renderer.setPixelRatio(Math.min(window.devicePixelRatio,2));
+renderer.setClearColor(0x07090f,1); // updated by setTheme()
+wrap.appendChild(renderer.domElement);
+
+var scene  = new THREE.Scene();
+var camera = new THREE.PerspectiveCamera(42,1,.05,2000);
+camera.position.z = 18;
+scene.fog  = new THREE.FogExp2(0x07090f,.014);
+
+scene.add(new THREE.AmbientLight(0xffffff,.32));
+var kl=new THREE.DirectionalLight(0xfff5e0,1.0); kl.position.set(8,12,10); scene.add(kl);
+var fl=new THREE.DirectionalLight(0xa0c0ff,.45); fl.position.set(-10,-5,-8); scene.add(fl);
+var rl=new THREE.DirectionalLight(0xffffff,.18); rl.position.set(0,-12,-6);  scene.add(rl);
+
+var grid=new THREE.GridHelper(40,40,0x0d1420,0x0a1018);
+grid.position.y=-7; scene.add(grid);
+
+var molG=null, autoRot=true, wireMode=false, molData=null;
+var dragging=false, prevM={x:0,y:0}, mBtn=-1, lastT=null;
+
+function resize(){
+  var w=wrap.clientWidth,h=wrap.clientHeight;
+  renderer.setSize(w,h,false);
+  camera.aspect=w/h; camera.updateProjectionMatrix();
+}
+resize(); window.addEventListener('resize',resize);
+
+(function loop(){
+  requestAnimationFrame(loop);
+  if(autoRot&&molG&&!dragging) molG.rotation.y+=.0045;
+  renderer.render(scene,camera);
+})();
+
+// ─────────────────────────────────────────────────
+//  BUILD MOLECULE FROM DATA
+// ─────────────────────────────────────────────────
+var YAX = new THREE.Vector3(0,1,0);
+
+function buildMol(data){
+  // Dispose old group
+  if(molG){
+    scene.remove(molG);
+    molG.traverse(function(o){
+      if(o.geometry) o.geometry.dispose();
+      if(o.material){
+        if(Array.isArray(o.material)) o.material.forEach(function(m){m.dispose()});
+        else o.material.dispose();
+      }
+    });
+    molG=null;
+  }
+
+  var atoms=data.atoms||[], bonds=data.bonds||[];
+  if(!atoms.length) return;
+
+  step(3,'active'); // Building 3D scene
+
+  molG = new THREE.Group();
+  var SC = 1.7; // Angstrom → scene units
+
+  // Center of mass
+  var cx=0,cy=0,cz=0;
+  for(var i=0;i<atoms.length;i++){cx+=atoms[i].x;cy+=atoms[i].y;cz+=atoms[i].z;}
+  cx/=atoms.length; cy/=atoms.length; cz/=atoms.length;
+
+  // Positions array
+  var P=[];
+  for(var i=0;i<atoms.length;i++){
+    P.push(new THREE.Vector3((atoms[i].x-cx)*SC,(atoms[i].y-cy)*SC,(atoms[i].z-cz)*SC));
+  }
+
+  // Atom spheres
+  for(var i=0;i<atoms.length;i++){
+    var ed=EL[atoms[i].element]||DEF;
+    var g=new THREE.SphereGeometry(ed.r,28,28);
+    var m=new THREE.MeshPhongMaterial({
+      color:ed.c, shininess:75,
+      specular:new THREE.Color(.22,.22,.22),
+      emissive:new THREE.Color(ed.c).multiplyScalar(.05),
+      wireframe:wireMode
+    });
+    var mesh=new THREE.Mesh(g,m);
+    mesh.position.copy(P[i]);
+    molG.add(mesh);
+  }
+
+  // Bonds
+  for(var b=0;b<bonds.length;b++){
+    var bd=bonds[b];
+    var ai=bd.from, bi=bd.to;
+    if(ai<0||bi<0||ai>=P.length||bi>=P.length) continue;
+    var pA=P[ai], pB=P[bi];
+    var dir=new THREE.Vector3().subVectors(pB,pA);
+    var len=dir.length();
+    if(len<.001) continue;
+    var mid=new THREE.Vector3().addVectors(pA,pB).multiplyScalar(.5);
+    var norm=dir.clone().normalize();
+    var order=bd.order||1;
+    var br=order===1?.092:.068;
+    var perp=new THREE.Vector3(0,1,0);
+    if(Math.abs(norm.dot(perp))>.9) perp.set(1,0,0);
+    perp=new THREE.Vector3().crossVectors(norm,perp).normalize();
+    var offs=order===1?[0]:order===2?[-.12,.12]:[-.17,0,.17];
+    for(var oi=0;oi<offs.length;oi++){
+      var cg=new THREE.CylinderGeometry(br,br,len,10,1);
+      var cm=new THREE.MeshPhongMaterial({color:0x7a8fa8,shininess:35,specular:0x1a1a1a,wireframe:wireMode});
+      var cyl=new THREE.Mesh(cg,cm);
+      cyl.position.copy(mid).addScaledVector(perp,offs[oi]);
+      cyl.quaternion.setFromUnitVectors(YAX,norm);
+      molG.add(cyl);
+    }
+  }
+
+  scene.add(molG);
+  step(3,'done');
+
+  // Fit camera
+  var maxR=0;
+  for(var i=0;i<P.length;i++) if(P[i].length()>maxR) maxR=P[i].length();
+  smoothZ(Math.max(maxR*2.5,7));
+
+  // Desktop sidebar UI
+  buildLegend(atoms, 'leg-list', 'leg-sec', 'mob-leg-list', 'mob-leg-sec');
+  document.getElementById('s-at').textContent=atoms.length;
+  document.getElementById('s-bo').textContent=bonds.length;
+  document.getElementById('s-fo').textContent=data.formula||'—';
+  show('lhr'); show('shr');
+  document.getElementById('leg-sec').style.display='';
+  document.getElementById('stat-sec').style.display='';
+
+  // Mobile stats
+  document.getElementById('mob-s-at').textContent=atoms.length;
+  document.getElementById('mob-s-bo').textContent=bonds.length;
+  document.getElementById('mob-s-fo').textContent=data.formula||'—';
+  show('mob-lhr'); show('mob-shr');
+  document.getElementById('mob-leg-sec').style.display='';
+  document.getElementById('mob-stat-sec').style.display='';
+
+  // Source badges (desktop + mobile)
+  var srcColor=data.source&&data.source.indexOf('PubChem')>=0?'#3a9a6a':'#e8a838';
+  var badge=document.getElementById('src-badge');
+  badge.style.display='flex';
+  document.getElementById('src-txt').textContent=data.source||'—';
+  document.getElementById('src-dot').style.background=srcColor;
+  var mbadge=document.getElementById('mob-src-badge');
+  mbadge.style.display='flex';
+  document.getElementById('mob-src-txt').textContent=data.source||'—';
+  document.getElementById('mob-src-dot').style.background=srcColor;
+
+  // Desktop header
+  document.getElementById('hdr-formula').textContent=data.formula||'';
+  document.getElementById('hdr-name').textContent=(data.name||'').toUpperCase();
+  document.getElementById('hdr-info').classList.add('on');
+
+  // Mobile formula pill
+  document.getElementById('mob-formula-txt').textContent=data.formula||'';
+  document.getElementById('mob-formula-nm').textContent=(data.name||'').toUpperCase();
+  document.getElementById('mob-formula').classList.add('on');
+
+  document.getElementById('empty').classList.add('off');
+  document.getElementById('hints').classList.add('on');
+}
+
+function smoothZ(target){
+  var s=camera.position.z,t=0;
+  (function animStep(){
+    t+=.04;
+    var e=1-Math.pow(1-Math.min(t,1),3);
+    camera.position.z=s+(target-s)*e;
+    if(t<1) requestAnimationFrame(animStep);
+  })();
+}
+
+function buildLegend(atoms, listId, secId, mobListId, mobSecId){
+  var ids = [[listId||'leg-list', secId], [mobListId||'mob-leg-list', mobSecId]];
+  var seen=new Set(), rows=[], d=0;
+  for(var i=0;i<atoms.length;i++){
+    if(seen.has(atoms[i].element)) continue;
+    seen.add(atoms[i].element);
+    var ed=EL[atoms[i].element]||DEF;
+    rows.push({el:atoms[i].element, ed:ed, d:d});
+    d++;
+  }
+  ids.forEach(function(pair){
+    var list=document.getElementById(pair[0]);
+    if(!list) return;
+    list.innerHTML='';
+    rows.forEach(function(r){
+      var row=document.createElement('div');
+      row.className='lrow';
+      row.style.animationDelay=(r.d*.055)+'s';
+      row.innerHTML='<div class="ldot" style="background:'+r.ed.h+';box-shadow:0 0 7px '+r.ed.h+'55"></div>'
+        +'<span class="lsym">'+r.el+'</span>'
+        +'<span class="lnm">'+r.ed.n+'</span>';
+      list.appendChild(row);
+    });
+  });
+}
+
+function show(id){var e=document.getElementById(id);if(e)e.style.display='';}
+
+// ─────────────────────────────────────────────────
+//  LOADING STEPS UI
+// ─────────────────────────────────────────────────
+function step(idx, state){
+  // state: 'active' | 'done'
+  var el=document.getElementById('st'+idx);
+  if(!el) return;
+  if(state==='active'){
+    el.className='ldstep active';
+    document.getElementById('ldtxt').textContent=el.querySelector('span').textContent;
+  } else {
+    el.className='ldstep done';
+  }
+}
+function resetSteps(){
+  for(var i=0;i<4;i++){
+    var e=document.getElementById('st'+i);
+    if(e) e.className='ldstep';
+  }
+}
+
+// ─────────────────────────────────────────────────
+//  PUBCHEM FETCH  (name → CID → 3D/2D JSON)
+// ─────────────────────────────────────────────────
+function fetchPubChem(name){
+  var BASE='https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound';
+
+  // Step 0: resolve name to CID
+  step(0,'active');
+  return fetch(BASE+'/name/'+encodeURIComponent(name)+'/cids/JSON')
+    .then(function(r){
+      if(!r.ok) throw new Error('PubChem: name not found ("'+name+'")');
+      return r.json();
+    })
+    .then(function(d){
+      var cids=(d.IdentifierList&&d.IdentifierList.CID)||[];
+      if(!cids.length) throw new Error('PubChem: no CID for "'+name+'"');
+      var cid=cids[0];
+      step(0,'done'); step(1,'active');
+
+      // Step 1: try 3D, fall back to 2D
+      return fetch(BASE+'/cid/'+cid+'/record/JSON?record_type=3d')
+        .then(function(r3){
+          if(r3.ok) return r3.json().then(function(j){ return {json:j,is3d:true}; });
+          // 3D not available
+          return fetch(BASE+'/cid/'+cid+'/record/JSON?record_type=2d')
+            .then(function(r2){
+              if(!r2.ok) throw new Error('PubChem: no structure data for CID '+cid);
+              return r2.json().then(function(j){ return {json:j,is3d:false}; });
+            });
+        });
+    })
+    .then(function(obj){
+      step(1,'done'); step(2,'active');
+
+      var pc=obj.json, is3d=obj.is3d;
+      var compound=(pc.PC_Compounds||[])[0];
+      if(!compound) throw new Error('PubChem: empty compound data');
+
+      // Atoms
+      var aids  = compound.atoms.aid;
+      var elems = compound.atoms.element; // atomic numbers
+      var coordBlock=(compound.coords||[])[0];
+      if(!coordBlock) throw new Error('PubChem: no coords block');
+      var conformer=(coordBlock.conformers||[])[0];
+      if(!conformer) throw new Error('PubChem: no conformer');
+
+      var xs=conformer.x||[], ys=conformer.y||[], zs=conformer.z||[];
+
+      // aid → array index map
+      var aidMap={};
+      var atoms=[];
+      for(var i=0;i<aids.length;i++){
+        var sym=AN2SYM[elems[i]]||('E'+elems[i]);
+        aidMap[aids[i]]=i;
+        atoms.push({id:i, element:sym, x:xs[i]||0, y:ys[i]||0, z:zs[i]||0});
+      }
+
+      // Bonds
+      var bonds=[];
+      if(compound.bonds){
+        var a1=compound.bonds.aid1||[];
+        var a2=compound.bonds.aid2||[];
+        var bo=compound.bonds.order||[];
+        for(var j=0;j<a1.length;j++){
+          var fi=aidMap[a1[j]], ti=aidMap[a2[j]];
+          if(fi===undefined||ti===undefined) continue;
+          bonds.push({from:fi, to:ti, order:normBondOrder(bo[j])});
+        }
+      }
+
+      // Molecular formula from props
+      var formula='';
+      (compound.props||[]).forEach(function(p){
+        if(p.urn&&p.urn.label==='Molecular Formula'){
+          formula=p.value&&(p.value.sval||p.value.ival||'')||'';
+        }
+      });
+
+      step(2,'done');
+      return {
+        name: name,
+        formula: formula||'',
+        atoms: atoms,
+        bonds: bonds,
+        source: is3d ? 'PubChem 3D' : 'PubChem 2D'
+      };
+    });
+}
+
+// ─────────────────────────────────────────────────
+//  GEMINI FALLBACK
+// ─────────────────────────────────────────────────
+function fetchGemini(name, key){
+  document.getElementById('ldtxt').textContent='ASKING GEMINI AI…';
+  // Reset steps, show as single step
+  resetSteps();
+  document.getElementById('ldsteps').style.display='none';
+
+  var prompt='Chemistry expert: return ONLY valid JSON for molecule "'+name+'". Schema: {"name":"string","formula":"string","atoms":[{"id":0,"element":"C","x":0.0,"y":0.0,"z":0.0}],"bonds":[{"from":0,"to":1,"order":1}]}. Rules: 3D coords in Angstroms, all H atoms, 0-indexed IDs, bond order 1/2/3, pure JSON only.';
+
+  return fetch('https://generativelanguage.googleapis.com/v1beta/models/gemma-3-27b-it:generateContent?key='+key,{
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({
+      contents:[{parts:[{text:prompt}]}],
+      generationConfig:{temperature:.05,maxOutputTokens:16384,responseMimeType:'application/json'},
+      safetySettings:[
+        {category:'HARM_CATEGORY_DANGEROUS_CONTENT',threshold:'BLOCK_NONE'},
+        {category:'HARM_CATEGORY_HARASSMENT',threshold:'BLOCK_NONE'},
+        {category:'HARM_CATEGORY_HATE_SPEECH',threshold:'BLOCK_NONE'},
+        {category:'HARM_CATEGORY_SEXUALLY_EXPLICIT',threshold:'BLOCK_NONE'}
+      ]
+    })
+  })
+  .then(function(r){
+    if(!r.ok) return r.json().catch(function(){return{};}).then(function(d){
+      throw new Error((d.error&&d.error.message)||'Gemini HTTP '+r.status);
+    });
+    return r.json();
+  })
+  .then(function(d){
+    var cand=(d.candidates||[])[0];
+    if(!cand) throw new Error('Gemini: no candidates. Block reason: '+((d.promptFeedback||{}).blockReason||'unknown'));
+    if(cand.finishReason==='SAFETY') throw new Error('Gemini: blocked by safety filter');
+    var txt=((cand.content&&cand.content.parts)||[]).map(function(p){return p.text||'';}).join('').trim();
+    if(!txt) throw new Error('Gemini: empty response');
+    txt=txt.replace(/^```(?:json)?\s*/i,'').replace(/\s*```\s*$/,'').trim();
+    var s=txt.indexOf('{'),e=txt.lastIndexOf('}');
+    if(s<0||e<0) throw new Error('Gemini: no JSON in response');
+    var parsed;
+    try{parsed=JSON.parse(txt.slice(s,e+1));}catch(er){throw new Error('Gemini: JSON parse error – '+er.message);}
+    if(!Array.isArray(parsed.atoms)||!parsed.atoms.length) throw new Error('Gemini: empty atoms');
+    var ac=parsed.atoms.length;
+    parsed.bonds=(parsed.bonds||[]).filter(function(b){
+      return typeof b.from==='number'&&typeof b.to==='number'&&b.from>=0&&b.to>=0&&b.from<ac&&b.to<ac;
+    });
+    parsed.source='Gemini AI';
+    return parsed;
+  });
+}
+
+// ─────────────────────────────────────────────────
+//  MAIN ENTRY
+// ─────────────────────────────────────────────────
+function go(name){
+  if(!name){
+    name=(document.getElementById('mob-minp').value||document.getElementById('minp').value||'').trim();
+  }
+  name=(name||'').trim();
+  if(!name){toast('Enter a molecule name.');return;}
+  setLoad(true);
+  resetSteps();
+  document.getElementById('ldsteps').style.display='flex';
+
+  fetchPubChem(name)
+    .catch(function(err){
+      console.warn('[PubChem]',err.message);
+      var key=document.getElementById('apikey').value.trim();
+      if(!key) throw new Error(err.message+'. Add a Gemini key for AI fallback.');
+      return fetchGemini(name, key);
+    })
+    .then(function(data){
+      molData=data;
+      buildMol(data);
+    })
+    .catch(function(err){
+      toast(err.message||'Unknown error');
+      console.error('[Molecule Studio]',err);
+    })
+    .then(function(){ setLoad(false); });
+}
+
+// ─────────────────────────────────────────────────
+//  UI HELPERS
+// ─────────────────────────────────────────────────
+function setLoad(on){
+  document.getElementById('ldov').classList.toggle('on',on);
+  var g=document.getElementById('gobtn');
+  g.classList.toggle('ld',on); g.disabled=on;
+  var mg=document.getElementById('mob-gobtn');
+  if(mg){ mg.classList.toggle('ld',on); mg.disabled=on; }
+}
+var _tt=null;
+function toast(msg){
+  var t=document.getElementById('toast');
+  t.textContent=msg; t.classList.add('on');
+  clearTimeout(_tt); _tt=setTimeout(function(){t.classList.remove('on');},4000);
+}
+
+// ─────────────────────────────────────────────────
+//  CONTROLS
+// ─────────────────────────────────────────────────
+// ─────────────────────────────────────────────────
+//  THEME TOGGLE
+// ─────────────────────────────────────────────────
+var isLight = false;
+function setTheme(light){
+  isLight = light;
+  if(light){
+    document.documentElement.classList.add('light');
+    document.getElementById('theme-icon').textContent = '☾';
+    document.getElementById('theme-lbl').textContent  = 'DARK';
+    renderer.setClearColor(0xeef0f4,1);
+    scene.fog = new THREE.FogExp2(0xeef0f4,.014);
+    grid.material.color.setHex(0xc8ccd4);
+    grid.material.vertexColors = false;
+  } else {
+    document.documentElement.classList.remove('light');
+    document.getElementById('theme-icon').textContent = '☀';
+    document.getElementById('theme-lbl').textContent  = 'LIGHT';
+    renderer.setClearColor(0x07090f,1);
+    scene.fog = new THREE.FogExp2(0x07090f,.014);
+    grid.material.color.setHex(0x0d1420);
+  }
+}
+document.getElementById('theme-btn').addEventListener('click',function(){ setTheme(!isLight); });
+
+// ─── Helper: get active input value (desktop or mobile) ───
+function getInput(){
+  var mob = window.matchMedia('(max-width:640px)').matches;
+  return mob ? document.getElementById('mob-minp').value.trim()
+             : document.getElementById('minp').value.trim();
+}
+
+// ─── Key toggle ───────────────────────────────────────────
+function bindKeyTog(btnId, inpId){
+  document.getElementById(btnId).addEventListener('click',function(){
+    var i=document.getElementById(inpId);
+    if(i.type==='password'){i.type='text';this.textContent='◎';}
+    else{i.type='password';this.textContent='◉';}
+  });
+}
+bindKeyTog('keytog','apikey');
+bindKeyTog('mob-keytog','mob-apikey');
+
+// Sync API keys between desktop and mobile fields
+function syncKey(src,dst){
+  document.getElementById(src).addEventListener('input',function(){
+    document.getElementById(dst).value=this.value;
+  });
+}
+syncKey('apikey','mob-apikey');
+syncKey('mob-apikey','apikey');
+
+// ─── Search wiring ────────────────────────────────────────
+document.getElementById('gobtn').addEventListener('click',function(){go();});
+document.getElementById('minp').addEventListener('keydown',function(e){if(e.key==='Enter')go();});
+document.getElementById('mob-gobtn').addEventListener('click',function(){
+  var v=document.getElementById('mob-minp').value.trim();
+  document.getElementById('minp').value=v;
+  go(v);
+});
+document.getElementById('mob-minp').addEventListener('keydown',function(e){
+  if(e.key==='Enter'){
+    document.getElementById('minp').value=this.value.trim();
+    go(this.value.trim());
+  }
+});
+
+// ─── Examples ────────────────────────────────────────────
+function makeChip(ex, container){
+  var p=document.createElement('button');
+  p.className='chip'; p.textContent=ex;
+  p.addEventListener('click',function(){
+    document.getElementById('minp').value=ex;
+    document.getElementById('mob-minp').value=ex;
+    closeSheet();
+    go(ex);
+  });
+  container.appendChild(p);
+}
+var chipsEl=document.getElementById('chips');
+var mobChipsEl=document.getElementById('mob-chips');
+EXAMPLES.forEach(function(ex){
+  makeChip(ex,chipsEl);
+  makeChip(ex,mobChipsEl);
+});
+
+// ─── 3D controls: wire both desktop + mobile ──────────────
+function toggleAutoRot(){
+  autoRot=!autoRot;
+  document.getElementById('brot').classList.toggle('on',autoRot);
+  document.getElementById('mbrot').classList.toggle('on',autoRot);
+}
+function doReset(){
+  if(!molG) return;
+  molG.rotation.set(0,0,0);
+  camera.position.x=0; camera.position.y=0;
+  if(molData){
+    var mx=0;
+    (molData.atoms||[]).forEach(function(a){
+      var l=Math.sqrt(a.x*a.x+a.y*a.y+a.z*a.z);
+      if(l>mx)mx=l;
+    });
+    smoothZ(Math.max(mx*2.5*1.7,7));
+  }
+}
+function toggleWire(){
+  wireMode=!wireMode;
+  document.getElementById('bwir').classList.toggle('on',wireMode);
+  document.getElementById('mbwir').classList.toggle('on',wireMode);
+  if(!molG) return;
+  molG.traverse(function(o){
+    if(o.material){
+      if(Array.isArray(o.material)) o.material.forEach(function(m){m.wireframe=wireMode;});
+      else o.material.wireframe=wireMode;
+    }
+  });
+}
+document.getElementById('brot').addEventListener('click',toggleAutoRot);
+document.getElementById('brst').addEventListener('click',doReset);
+document.getElementById('bwir').addEventListener('click',toggleWire);
+document.getElementById('mbrot').addEventListener('click',function(){ autoRot=!autoRot; this.classList.toggle('on',autoRot); document.getElementById('brot').classList.toggle('on',autoRot); });
+document.getElementById('mbrst').addEventListener('click',doReset);
+document.getElementById('mbwir').addEventListener('click',toggleWire);
+
+// ─── Mobile bottom sheet ──────────────────────────────────
+var sheetOpen=false;
+function openSheet(){
+  sheetOpen=true;
+  document.getElementById('mob-sheet').classList.add('open');
+  document.getElementById('mob-panel-btn').classList.add('on');
+}
+function closeSheet(){
+  sheetOpen=false;
+  document.getElementById('mob-sheet').classList.remove('open');
+  document.getElementById('mob-panel-btn').classList.remove('on');
+}
+document.getElementById('mob-panel-btn').addEventListener('click',function(){
+  sheetOpen?closeSheet():openSheet();
+});
+document.getElementById('sheet-handle').addEventListener('click',closeSheet);
+
+// Swipe-down to close sheet
+var sheetTouchY=0;
+document.getElementById('mob-sheet').addEventListener('touchstart',function(e){
+  sheetTouchY=e.touches[0].clientY;
+},{passive:true});
+document.getElementById('mob-sheet').addEventListener('touchend',function(e){
+  var dy=e.changedTouches[0].clientY-sheetTouchY;
+  if(dy>60) closeSheet();
+},{passive:true});
+
+// Tap canvas to close sheet
+document.getElementById('cvs').addEventListener('touchstart',function(){
+  if(sheetOpen) closeSheet();
+},{passive:true});
+
+// ─────────────────────────────────────────────────
+//  MOUSE / TOUCH
+// ─────────────────────────────────────────────────
+wrap.addEventListener('mousedown',function(e){
+  dragging=true; mBtn=e.button;
+  prevM={x:e.clientX,y:e.clientY};
+  wrap.classList.add('drag');
+  if(e.button===0){autoRot=false;document.getElementById('brot').classList.remove('on');}
+});
+window.addEventListener('mousemove',function(e){
+  if(!dragging||!molG) return;
+  var dx=e.clientX-prevM.x, dy=e.clientY-prevM.y;
+  if(mBtn===0){molG.rotation.y+=dx*.009;molG.rotation.x+=dy*.009;}
+  else if(mBtn===2){camera.position.x-=dx*.013;camera.position.y+=dy*.013;}
+  prevM={x:e.clientX,y:e.clientY};
+});
+window.addEventListener('mouseup',function(){dragging=false;wrap.classList.remove('drag');});
+wrap.addEventListener('contextmenu',function(e){e.preventDefault();});
+wrap.addEventListener('wheel',function(e){
+  e.preventDefault();
+  camera.position.z=Math.max(2,Math.min(80,camera.position.z+e.deltaY*.038));
+},{passive:false});
+wrap.addEventListener('touchstart',function(e){
+  if(e.touches.length===1){
+    dragging=true; lastT={x:e.touches[0].clientX,y:e.touches[0].clientY};
+    autoRot=false; document.getElementById('brot').classList.remove('on');
+  }
+},{passive:true});
+wrap.addEventListener('touchmove',function(e){
+  if(!dragging||!molG||e.touches.length!==1) return;
+  var dx=e.touches[0].clientX-lastT.x, dy=e.touches[0].clientY-lastT.y;
+  molG.rotation.y+=dx*.011; molG.rotation.x+=dy*.011;
+  lastT={x:e.touches[0].clientX,y:e.touches[0].clientY};
+},{passive:true});
+wrap.addEventListener('touchend',function(){dragging=false;});
+</script>
+</body>
+</html>
