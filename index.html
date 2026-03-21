@@ -1090,19 +1090,38 @@ wrap.addEventListener('wheel',function(e){
   e.preventDefault();
   camera.position.z=Math.max(2,Math.min(80,camera.position.z+e.deltaY*.038));
 },{passive:false});
+var pinchDist=0;
+function getTouchDist(e){
+  var dx=e.touches[0].clientX-e.touches[1].clientX;
+  var dy=e.touches[0].clientY-e.touches[1].clientY;
+  return Math.sqrt(dx*dx+dy*dy);
+}
 wrap.addEventListener('touchstart',function(e){
   if(e.touches.length===1){
     dragging=true; lastT={x:e.touches[0].clientX,y:e.touches[0].clientY};
     autoRot=false; document.getElementById('brot').classList.remove('on');
+  } else if(e.touches.length===2){
+    dragging=false;
+    pinchDist=getTouchDist(e);
   }
 },{passive:true});
 wrap.addEventListener('touchmove',function(e){
+  if(e.touches.length===2){
+    var newDist=getTouchDist(e);
+    var delta=pinchDist-newDist;
+    camera.position.z=Math.max(2,Math.min(80,camera.position.z+delta*0.05));
+    pinchDist=newDist;
+    return;
+  }
   if(!dragging||!molG||e.touches.length!==1) return;
   var dx=e.touches[0].clientX-lastT.x, dy=e.touches[0].clientY-lastT.y;
   molG.rotation.y+=dx*.011; molG.rotation.x+=dy*.011;
   lastT={x:e.touches[0].clientX,y:e.touches[0].clientY};
 },{passive:true});
-wrap.addEventListener('touchend',function(){dragging=false;});
+wrap.addEventListener('touchend',function(e){
+  if(e.touches.length<2) pinchDist=0;
+  if(e.touches.length===0) dragging=false;
+});
 </script>
 </body>
 </html>
